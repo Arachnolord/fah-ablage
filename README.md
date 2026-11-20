@@ -9,6 +9,20 @@ Absender, Briefdatum und Titel und legt sie selbst ab:
 Nichts verlässt das NAS: Texterkennung (tesseract/ocrmypdf, Deutsch) und Sprachmodell
 (Qwen3-4B über llama.cpp) laufen in den eigenen Containern.
 
+## Screenshots
+
+*Aufgenommen mit erfundenen Beispielbriefen (an „Max Mustermann, Musterstadt“) – keine echten Dokumente oder Daten.*
+
+![Dokumente – automatisch abgelegt nach Art, Absender und Datum](docs/screenshots/2-dokumente.png)
+
+| Übersicht | Kacheln |
+|---|---|
+| ![Übersicht](docs/screenshots/1-uebersicht.png) | ![Kacheln](docs/screenshots/3-kacheln.png) |
+| **Dokument mit Vorschau** | **Absender** |
+| ![Dokument](docs/screenshots/4-dokument.png) | ![Absender](docs/screenshots/5-absender.png) |
+
+<img src="docs/screenshots/6-handy.png" alt="Handy" width="260">
+
 ## Bedienung
 - **Übersicht:** Dateien hineinziehen oder antippen, Kacheln für „in Arbeit“, „abgelegt“, „unsicher“, Import.
 - **Suche:** Volltext, Art, Absender, Zeitraum, Jahr-Schnellwahl, nur unsichere, Papierkorb.
