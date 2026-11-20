@@ -1,0 +1,122 @@
+{% extends "basis.html" %}
+{% block titel %}Einstellungen – FAH-Ablage{% endblock %}
+{% block inhalt %}
+<section class="karte">
+  <h1>Einstellungen</h1>
+  {% if gespeichert %}<div class="meldung ok">Gespeichert.</div>{% endif %}
+  <form method="post" action="/einstellungen" class="formular">
+    <p>Arten ({{ e.arten|length }}) anlegen, umbenennen oder löschen: <a href="/arten">Arten verwalten ›</a></p>
+    <p class="hinweis">ⓘ Die Arten sind die Hauptordner im Archiv. Die KI wählt für jedes Dokument genau eine davon.</p>
+
+    <label>Wann als „unsicher“ markieren
+      <input type="range" name="unsicher_schwelle" min="0" max="0.95" step="0.05" value="{{ e.unsicher_schwelle }}"
+             id="schwelle" data-stellungen='{{ schwellen|tojson }}'>
+    </label>
+    <p class="hinweis" id="schwelle-text">ⓘ</p>
+    <p class="hinweis">ⓘ Abgelegt wird immer. Diese Einstellung bestimmt nur, ab wann ein Dokument zusätzlich die Markierung „unsicher“ bekommt.</p>
+    <button type="submit">Speichern</button>
+  </form>
+</section>
+
+<section class="karte">
+  <h2>Ordner auf dem NAS</h2>
+  <dl class="ordner">
+    <dt>Eingang</dt><dd><code>{{ pfade.eingang }}</code></dd>
+    <dt>Archiv</dt><dd><code>{{ pfade.archiv }}</code></dd>
+    <dt>Import aus (nur lesen)</dt><dd><code>{{ pfade.quellen }}</code></dd>
+  </dl>
+  <p class="hinweis">ⓘ Was im Eingang landet, wird gelesen und ins Archiv verschoben. Ordner zum Importieren liest die App nur – dort wird nichts verändert.</p>
+</section>
+
+<section class="karte" id="import">
+  <h2>Ordner importieren</h2>
+  <dl class="ordner">
+    <dt>Gewählter Ordner</dt>
+    <dd><code>{{ imp.anzeige }}</code><br>
+      <span class="hinweis">{% if not imp.da %}Nicht (mehr) vorhanden – bitte einen anderen wählen.{% else %}{{ imp.dateien_text }}{% if imp.kopien %}, davon {{ imp.kopien }} schon abgelegt{% endif %}{% endif %}</span></dd>
+  </dl>
+  <details class="ordnerwahl" data-ordnerwahl data-start="{{ imp.ordner }}" data-wurzel="{{ pfade.quellen }}">
+    <summary class="knopf zweit">Anderen Ordner wählen</summary>
+    <div class="ordnerwahl-feld">
+      <nav class="ordnerwahl-pfad" data-teile></nav>
+      <p class="hinweis" data-info></p>
+      <ul class="ordnerwahl-liste" data-liste></ul>
+      <form method="post" action="/import/ordner">
+        <input type="hidden" name="pfad" value="{{ imp.ordner }}" data-wahl>
+        <button type="submit" data-nehmen>Diesen Ordner nehmen</button>
+      </form>
+    </div>
+  </details>
+  <p class="hinweis">ⓘ Wähle einen beliebigen Ordner aus deinem persönlichen Ordner auf dem NAS, Unterordner werden mitgenommen. Eingang und Archiv sind ausgenommen, Videos und Musik werden übersprungen.</p>
+  {% if lauf.import_gesamt %}
+  <p>Import: {{ lauf.import_fertig }} von {{ lauf.import_gesamt }} fertig{% if lauf.import_offen %} – läuft noch{% endif %}. <a href="/bericht">Bericht ansehen</a></p>
+  {% endif %}
+  <form method="post" action="/import" data-bestaetigen="{{ imp.dateien_text }} aus „{{ imp.anzeige }}“ jetzt einlesen? Das läuft im Hintergrund (etwa eine Minute pro neuem Dokument), neue Uploads haben Vorrang.">
+    <button type="submit" {% if not imp.da or not imp.dateien %}disabled{% endif %}>Import starten</button>
+  </form>
+  <p class="hinweis">ⓘ Kopiert jedes Dokument aus dem gewählten Ordner und legt die Kopie ab. Schon abgelegte Dokumente werden erkannt und übersprungen – du kannst den Import also gefahrlos wiederholen.</p>
+  {% if imp.kopien %}
+  <form method="post" action="/import/zuruecksetzen" data-bestaetigen="Die {{ imp.kopien }} aus „{{ imp.anzeige }}“ abgelegten Kopien wieder entfernen? Die Originale bleiben unberührt, Korrekturen an diesen Dokumenten gehen verloren.">
+    <button class="gefahr" type="submit">Import aus diesem Ordner zurücksetzen</button>
+  </form>
+  <p class="hinweis">ⓘ Entfernt nur die Kopien aus diesem Ordner aus dem Archiv, damit sie neu eingeordnet werden können. Uploads, Importe aus anderen Ordnern und die Originale bleiben.</p>
+  {% endif %}
+</section>
+
+<section class="karte" id="blick">
+  <h2>Zweiter Blick auf unsichere Dokumente</h2>
+  <p>{{ lauf.blick_geklaert }} selbst geklärt{% if lauf.blick_geklaert %} (<a href="/dokumente?blick=1">ansehen</a>){% endif %}, {{ lauf.blick_offen }} warten noch auf die genauere KI-Runde.</p>
+  <p class="hinweis">ⓘ Unsichere Dokumente schaut die App ein zweites Mal an: Zuerst vergleicht sie mit fast gleichen, schon sicheren Dokumenten (z. B. Lohnzettel desselben Arbeitgebers), dann fragt sie die KI noch einmal mit mehr Text und diesen Vorbildern. Läuft von selbst, wenn sonst nichts zu tun ist, und nach jeder deiner Korrekturen erneut.</p>
+  <form method="post" action="/blick/wiederholen">
+    <button class="knopf zweit" type="submit">Unsichere jetzt noch einmal genauer prüfen</button>
+  </form>
+  <p class="hinweis">ⓘ Schickt alle noch unsicheren Dokumente erneut durch beide Schritte – sinnvoll, nachdem du Arten oder Hinweise für die KI geändert hast. Etwa eine Minute pro Dokument, neue Uploads haben Vorrang.</p>
+</section>
+
+<section class="karte" id="sicherung">
+  <h2>Sicherung & Wiederherstellung</h2>
+  {% if sich.laeuft %}<div class="meldung achtung">{{ 'Sicherung wird erstellt …' if sich.art == 'erstellen' else 'Wird wiederhergestellt …' }} Seite in ein paar Minuten neu laden.</div>
+  {% elif sich.meldung %}<div class="meldung {{ 'fehler' if sich.fehler else 'ok' }}">{{ sich.meldung }}</div>{% endif %}
+  <form method="post" action="/sicherung/erstellen">
+    <button type="submit" {% if sich.laeuft %}disabled{% endif %}>Sicherung jetzt erstellen</button>
+  </form>
+  <p class="hinweis">ⓘ Packt alle abgelegten Dokumente samt Arten, Absendern, Korrekturen, Regeln und Einstellungen in eine Datei. Damit stellst du eine frische Installation wieder her, ohne alles neu einlesen zu lassen. Die drei neuesten Sicherungen bleiben liegen.</p>
+  {% if sicherungen %}
+  <div class="tabelle-huelle"><table class="tabelle">
+    <thead><tr><th>Sicherung</th><th class="zahl">Größe</th><th></th></tr></thead>
+    <tbody>
+    {% for s in sicherungen %}
+    <tr>
+      <td><code>{{ s.name }}</code><br><span class="hinweis">{{ s.zeit|int|zeit_de }}</span></td>
+      <td class="zahl">{{ '%.1f'|format(s.groesse / 1048576) }} MB</td>
+      <td class="aktionen">
+        <a class="knopf zweit" href="/sicherung/datei/{{ s.name|urlencode }}">Herunterladen</a>
+        {% if leer %}
+        <form method="post" action="/sicherung/wiederherstellen" data-bestaetigen="Diese Sicherung jetzt wiederherstellen?">
+          <input type="hidden" name="name" value="{{ s.name }}"><button type="submit" {% if sich.laeuft %}disabled{% endif %}>Wiederherstellen</button>
+        </form>
+        {% endif %}
+        <form method="post" action="/sicherung/loeschen" data-bestaetigen="Diese Sicherungsdatei löschen?">
+          <input type="hidden" name="name" value="{{ s.name }}"><button class="gefahr" type="submit">Löschen</button>
+        </form>
+      </td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+  {% endif %}
+  <form method="post" action="/sicherung/hochladen" enctype="multipart/form-data" class="formular" data-hochladen>
+    <label>Sicherungsdatei hochladen <input type="file" name="datei" accept=".tar" required></label>
+    <button class="knopf zweit" type="submit">Hochladen</button>
+  </form>
+  <p class="hinweis">ⓘ Wiederherstellen geht nur in eine <strong>leere</strong> Ablage, also nach einer frischen Installation: erst Zugang anlegen, dann die Sicherung hochladen und „Wiederherstellen“ drücken. Dein Zugang und Passwort sind nicht in der Sicherung enthalten.{% if not leer %} Diese Ablage enthält Dokumente – darum ist „Wiederherstellen“ hier ausgeblendet.{% endif %}</p>
+</section>
+
+<section class="karte">
+  <h2>Gelernte Regeln</h2>
+  {% if regeln %}
+  <ul class="regeln">{% for r in regeln %}<li><span>{{ r.absender }}</span> → <span class="chip">{{ r.art }}</span></li>{% endfor %}</ul>
+  {% else %}<p class="leer">Noch keine. Sobald du ein Dokument korrigierst, merkt sich die App die Zuordnung hier.</p>{% endif %}
+  <p class="hinweis">ⓘ Regeln gehen der KI vor: Ein Absender mit Regel landet immer in dieser Art.</p>
+</section>
+{% endblock %}

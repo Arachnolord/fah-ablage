@@ -1,0 +1,35 @@
+{% extends "basis.html" %}
+{% block titel %}Bericht – FAH-Ablage{% endblock %}
+{% block inhalt %}
+<section class="karte">
+  <h1>Bericht zum Import</h1>
+  <p>{% if alle %}Alle Import-Ordner. <a href="/bericht">Nur der gewählte Ordner</a>{% else %}Ordner: <code>{{ ordner_anzeige }}</code> · <a href="/bericht?alle=1">Alle Import-Ordner</a>{% endif %}</p>
+  <p>{{ lauf.import_fertig }} von {{ lauf.import_gesamt }} Dokumenten verarbeitet{% if lauf.import_offen %} – läuft noch{% endif %}.</p>
+  <div class="kacheln">
+    <div class="kachel"><span class="kachel-zahl">{{ gesamt }}</span><span class="kachel-name">abgelegt</span></div>
+    <div class="kachel"><span class="kachel-zahl">{{ (unsicher * 100)|round|int }} %</span><span class="kachel-name">unsicher</span></div>
+    <div class="kachel"><span class="kachel-zahl">{{ (einheitlich * 100)|round|int }} %</span><span class="kachel-name">einheitlich</span></div>
+  </div>
+  <p class="hinweis">ⓘ „Einheitlich“: Wie oft die KI Dokumente aus demselben alten Ordner auch in dieselbe Art gelegt hat. Niedrige Werte zeigen, wo sie anders sortiert als du früher.</p>
+</section>
+<section class="karte">
+  <h2>Nach altem Ordner</h2>
+  {% if gruppen %}
+  <div class="tabelle-huelle">
+  <table class="tabelle">
+    <thead><tr><th>Alter Ordner</th><th>Dok.</th><th>unsicher</th><th>einheitlich</th><th>abgelegt unter</th></tr></thead>
+    <tbody>
+    {% for g in gruppen %}
+    <tr>
+      <td>{{ g.herkunft }}</td><td>{{ g.gesamt }}</td>
+      <td>{{ (g.unsicher / g.gesamt * 100)|round|int }} %</td>
+      <td>{{ (g.einheitlich * 100)|round|int }} %</td>
+      <td>{% for a, n in g.arten|dictsort(by='value', reverse=true) %}<span class="chip">{{ a }} {{ n }}</span> {% endfor %}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {% else %}<p class="leer">Noch kein Import gelaufen.</p>{% endif %}
+</section>
+{% endblock %}

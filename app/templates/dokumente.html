@@ -1,0 +1,106 @@
+{% extends "basis.html" %}
+{% from "_makros.html" import kacheln, tabelle %}
+{% block titel %}{% if papierkorb %}Papierkorb{% elif unsicher %}Unsicher{% elif blick %}Zweiter Blick{% else %}Dokumente{% endif %} – FAH-Ablage{% endblock %}
+{% block mainklasse %}breit{% endblock %}
+{% block inhalt %}
+<div class="seitenkopf">
+  <h1>{% if papierkorb %}Papierkorb{% elif unsicher %}Unsicher abgelegt{% elif blick %}Vom zweiten Blick geklärt{% else %}Dokumente{% endif %}</h1>
+  <div class="ansicht-wahl" role="group" aria-label="Ansicht">
+    <a href="{{ link(ansicht='tabelle') }}" {% if ansicht == 'tabelle' %}aria-current="true"{% endif %} title="Tabelle">☰ Tabelle</a>
+    <a href="{{ link(ansicht='kacheln') }}" {% if ansicht == 'kacheln' %}aria-current="true"{% endif %} title="Kacheln">▦ Kacheln</a>
+  </div>
+</div>
+
+{% set erledigt = request.query_params.get('erledigt') %}
+{% if erledigt %}{% set fehl = request.query_params.get('fehlgeschlagen', '0') %}
+<div class="meldung {{ 'achtung' if fehl != '0' else 'ok' }}">{{ erledigt }} {{ 'Dokument' if erledigt == '1' else 'Dokumente' }}
+  {{ {'speichern': 'gespeichert', 'papierkorb': 'in den Papierkorb gelegt', 'wiederherstellen': 'wiederhergestellt', 'endgueltig': 'endgültig gelöscht'}.get(request.query_params.get('was'), 'bearbeitet') }}{% if fehl != '0' %} – bei {{ fehl }} ging es nicht (Datei verschoben oder schon erledigt){% endif %}.</div>
+{% endif %}
+{% if request.query_params.get('fertig') %}<div class="meldung ok">Alles geprüft – keine unsicheren Dokumente mehr offen.</div>{% endif %}
+{% if papierkorb %}
+<div class="karte papierkorb-kopf">
+  <p class="hinweis">ⓘ Dokumente im Papierkorb werden 30 Tage nach dem Löschen von selbst endgültig entfernt. Bis dahin lassen sie sich wiederherstellen.</p>
+  {% if gesamt %}
+  <form method="post" action="/papierkorb/leeren" data-bestaetigen="Papierkorb leeren? Alle {{ gesamt }} Dokumente darin werden endgültig gelöscht – das lässt sich nicht rückgängig machen.">
+    <button class="gefahr" type="submit">Papierkorb leeren ({{ gesamt }})</button>
+  </form>
+  {% endif %}
+</div>
+{% endif %}
+{% if blick %}<p class="hinweis">ⓘ Diese Dokumente waren unsicher und wurden vom zweiten Blick selbst zugeordnet. Stichproben genügen – speicherst du eines, verschwindet es aus dieser Liste.</p>{% endif %}
+{% if unsicher and treffer %}<p class="hinweis">ⓘ Klick auf ein Dokument startet die Prüfung: Nach „Speichern“ öffnet sich gleich das nächste.</p>{% endif %}
+<form class="filterleiste karte" action="/dokumente" method="get">
+  <input type="hidden" name="ansicht" value="{{ ansicht }}">
+  <input type="hidden" name="sortierung" value="{{ sortierung }}">
+  <input type="hidden" name="richtung" value="{{ 'ab' if absteigend else 'auf' }}">
+  {% if papierkorb %}<input type="hidden" name="papierkorb" value="1">{% endif %}
+  <input class="filter-text" type="search" name="q" value="{{ q }}" placeholder="Titel & Inhalt durchsuchen" aria-label="Titel und Inhalt durchsuchen">
+  <select name="art" data-sofort aria-label="Art">
+    <option value="">Alle Arten</option>
+    {% for a in arten %}<option {% if a == art %}selected{% endif %}>{{ a }}</option>{% endfor %}
+  </select>
+  <select name="absender" data-sofort aria-label="Absender">
+    <option value="">Alle Absender</option>
+    {% for a in absender_liste %}<option {% if a == absender %}selected{% endif %}>{{ a }}</option>{% endfor %}
+  </select>
+  <select name="jahr" data-sofort aria-label="Jahr">
+    <option value="">Alle Jahre</option>
+    {% for j in jahre %}<option {% if jahr == j|string %}selected{% endif %}>{{ j }}</option>{% endfor %}
+  </select>
+  <details class="mehr-filter"{% if von or bis or unsicher or blick %} open{% endif %}>
+    <summary>Mehr</summary>
+    <label>von <input type="date" name="von" value="{{ von if not jahr else '' }}"></label>
+    <label>bis <input type="date" name="bis" value="{{ bis if not jahr else '' }}"></label>
+    {% if not papierkorb %}<label class="chip-check"><input type="checkbox" name="unsicher" value="1" data-sofort {% if unsicher %}checked{% endif %}> nur unsichere</label>
+    <label class="chip-check"><input type="checkbox" name="blick" value="1" data-sofort {% if blick %}checked{% endif %}> vom zweiten Blick geklärt</label>{% endif %}
+  </details>
+  <button type="submit">Filtern</button>
+  {% if filter_q %}<a class="nurtext" href="/dokumente?ansicht={{ ansicht }}">zurücksetzen</a>{% endif %}
+</form>
+
+<p class="trefferzeile">
+  {% if gesamt %}{{ (seite_nr - 1) * groesse + 1 }}–{{ [seite_nr * groesse, gesamt]|min }} von {{ gesamt }} Dokumenten{% else %}Keine Dokumente gefunden.{% endif %}
+  {% if treffer %}· <label class="chip-check"><input type="checkbox" data-alle-waehlen> alle auf dieser Seite auswählen</label>{% endif %}
+  {% if ansicht == 'kacheln' and gesamt %}
+  · sortiert nach
+  <select class="sortwahl" aria-label="Sortierung" data-navigiere>
+    {% for k, n in sortierungen.items() %}<option value="{{ sort_link(k) if k != sortierung else '' }}" {% if k == sortierung %}selected{% endif %}>{{ n }}</option>{% endfor %}
+  </select>
+  {% endif %}
+</p>
+
+{% if treffer %}
+  {% if ansicht == 'kacheln' %}{{ kacheln(treffer, pruefen=unsicher, waehlbar=True) }}{% else %}{{ tabelle(treffer, sortierung, absteigend, sort_link, pruefen=unsicher, waehlbar=True) }}{% endif %}
+{% endif %}
+
+{% if seiten > 1 %}
+<nav class="blaettern" aria-label="Seiten">
+  {% if seite_nr > 1 %}<a href="{{ link(seite_nr=seite_nr - 1) }}">← zurück</a>{% else %}<span></span>{% endif %}
+  <span>Seite {{ seite_nr }} von {{ seiten }}</span>
+  {% if seite_nr < seiten %}<a href="{{ link(seite_nr=seite_nr + 1) }}">weiter →</a>{% else %}<span></span>{% endif %}
+</nav>
+{% endif %}
+
+{% if treffer %}
+<form id="sammel" class="sammelleiste karte" method="post" action="/sammel" hidden>
+  <input type="hidden" name="zurueck" value="{{ request.url.path }}{% if request.url.query %}?{{ request.url.query }}{% endif %}">
+  <strong data-sammel-zahl>0 ausgewählt</strong>
+  {% if papierkorb %}
+  <button type="submit" name="aktion" value="wiederherstellen">Wiederherstellen</button>
+  <button class="gefahr" type="submit" name="aktion" value="endgueltig" data-frage="Ausgewählte Dokumente endgültig löschen? Das lässt sich nicht rückgängig machen.">Endgültig löschen</button>
+  {% else %}
+  <select name="art" aria-label="Art für alle ausgewählten">
+    <option value="">Art lassen</option>
+    {% for a in arten %}<option>{{ a }}</option>{% endfor %}
+  </select>
+  <input name="absender" list="sammel-absender" maxlength="50" autocomplete="off" placeholder="Absender lassen" aria-label="Absender für alle ausgewählten">
+  <datalist id="sammel-absender">{% for a in absender_alle %}<option value="{{ a }}">{% endfor %}</datalist>
+  <input type="date" name="datum" aria-label="Datum für alle ausgewählten" title="Leer lassen = jedes Dokument behält sein Datum">
+  <button type="submit" name="aktion" value="speichern">Speichern</button>
+  <button class="gefahr" type="submit" name="aktion" value="papierkorb" data-frage="Ausgewählte Dokumente in den Papierkorb legen? Sie lassen sich 30 Tage lang wiederherstellen.">In den Papierkorb</button>
+  {% endif %}
+  <button type="button" class="nurtext" data-auswahl-aufheben>Auswahl aufheben</button>
+  {% if not papierkorb %}<p class="hinweis">ⓘ Nur ausgefüllte Felder werden geändert, leere bleiben, wie sie sind. Gespeicherte Dokumente gelten als geprüft und wandern in den passenden Ordner.</p>{% endif %}
+</form>
+{% endif %}
+{% endblock %}

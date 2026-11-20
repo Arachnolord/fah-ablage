@@ -1,0 +1,100 @@
+{% extends "basis.html" %}
+{% block titel %}{{ d.titel }} – FAH-Ablage{% endblock %}
+{% block mainklasse %}breit{% endblock %}
+{% block inhalt %}
+{% if pruefen %}
+<div class="pruefleiste">
+  <span><strong>Prüfen</strong> · noch {{ offen }} unsicher{% if offen == 1 %}es Dokument{% else %}e Dokumente{% endif %}</span>
+  <span class="aktionen">
+    {% if naechstes %}<a class="knopf zweit" href="/dokument/{{ naechstes }}?pruefen=1">Überspringen ›</a>{% endif %}
+    <a class="nurtext" href="/dokumente?unsicher=1">Prüfen beenden</a>
+  </span>
+</div>
+{% endif %}
+<div class="seitenkopf">
+  <div>
+    <p class="brotkrumen"><a href="/dokumente">Dokumente</a> › <a href="/dokumente?art={{ d.art|urlencode }}">{{ d.art }}</a> › <a href="/dokumente?absender={{ d.absender|urlencode }}">{{ d.absender }}</a></p>
+    <h1>{{ d.titel }}</h1>
+  </div>
+  <div class="aktionen">
+    <a class="knopf" href="/datei/{{ d.id }}" target="_blank" rel="noopener">Öffnen</a>
+    <a class="knopf zweit" href="/datei/{{ d.id }}?herunterladen=1">Herunterladen</a>
+  </div>
+</div>
+
+<div class="detail">
+  <div class="detail-links">
+    {% if d.status == 'papierkorb' %}
+    <div class="meldung achtung">Liegt im Papierkorb und wird 30 Tage nach dem Löschen endgültig entfernt.
+      <div class="aktionen">
+        <form method="post" action="/dokument/{{ d.id }}/wiederherstellen"><button type="submit">Wiederherstellen</button></form>
+        <form method="post" action="/dokument/{{ d.id }}/endgueltig" data-bestaetigen="Dokument endgültig löschen? Das lässt sich nicht rückgängig machen."><button class="gefahr" type="submit">Endgültig löschen</button></form>
+      </div>
+    </div>
+    {% elif d.unsicher %}
+    <div class="meldung achtung">Unsicher abgelegt: {{ d.grund }}. Passt alles, einfach „Speichern“ drücken – dann gilt es als geprüft.</div>
+    {% endif %}
+    {% if request.query_params.get('gespeichert') %}<div class="meldung ok">Gespeichert. Die Datei liegt jetzt am richtigen Platz; geänderte Zuordnungen merkt sich die App als Regel.</div>{% endif %}
+    {% if fehler %}<div class="meldung fehler">{{ fehler }}</div>{% endif %}
+
+    {% if d.status == 'abgelegt' %}
+    <section class="karte">
+      <form method="post" action="/dokument/{{ d.id }}" class="formular">
+        {% if pruefen %}<input type="hidden" name="pruefen" value="1">{% endif %}
+        <label>Titel <input name="titel" value="{{ d.titel }}" maxlength="60" required></label>
+        <label>Art
+          <select name="art">{% for a in arten %}<option {% if a == d.art %}selected{% endif %}>{{ a }}</option>{% endfor %}</select>
+        </label>
+        <label>Absender
+          <input name="absender" value="{{ d.absender }}" list="absender-vorschlaege" maxlength="50" required data-ganze-liste autocomplete="off">
+          <datalist id="absender-vorschlaege">{% for a in absender_liste %}<option value="{{ a }}">{% endfor %}</datalist>
+        </label>
+        <label>Datum <input type="date" name="datum" value="{{ d.datum }}" required></label>
+        <p class="hinweis">ⓘ Beim Speichern wandert die Datei in den passenden Ordner. Änderst du Art oder Absender, merkt sich die App das als Regel für die nächsten Briefe dieses Absenders.</p>
+        <button type="submit">{% if pruefen %}Speichern & weiter ›{% else %}Speichern{% endif %}</button>
+      </form>
+    </section>
+    {% endif %}
+
+    <section class="karte">
+      <dl class="eigenschaften">
+        <dt>Ablageort</dt><dd><code>{{ d.rel_pfad }}</code></dd>
+        <dt>Hinzugefügt</dt><dd>{{ d.eingang_ts|int|zeit_de }} ({{ {'eingang': 'Eingang', 'upload': 'Upload', 'import': 'Import'}.get(d.quelle, d.quelle) }}{% if d.quelle == 'import' and d.ordner %} aus „{{ d.ordner }}“{% endif %})</dd>
+        {% if d.quelle_datei %}<dt>Ursprünglich</dt><dd><code>{{ d.quelle_datei }}</code></dd>
+        {% elif d.herkunft %}<dt>Alter Ordner</dt><dd><code>{{ d.herkunft }}</code></dd>{% endif %}
+        {% if dubletten %}<dt>Doppelt</dt><dd><a href="/doppelte#dok-{{ d.id }}">{{ dubletten }} byte-gleiche {{ 'Datei' if dubletten == 1 else 'Dateien' }}</a></dd>{% endif %}
+        {% if d.blick_text %}<dt>Zweiter Blick</dt><dd>{{ d.blick_text[15:] if d.blick_text.startswith('Zweiter Blick: ') else d.blick_text }}</dd>{% endif %}
+      </dl>
+      {% if d.status == 'abgelegt' %}
+      <form method="post" action="/dokument/{{ d.id }}/papierkorb" data-bestaetigen="Dokument in den Papierkorb legen? Es lässt sich 30 Tage lang wiederherstellen.">
+        {% if pruefen %}<input type="hidden" name="pruefen" value="1">{% endif %}
+        <button class="gefahr" type="submit">In den Papierkorb</button>
+      </form>
+      {% endif %}
+    </section>
+  </div>
+
+  <div class="detail-rechts">
+    {% if ist_pdf %}
+    <iframe class="vorschau-rahmen" src="/datei/{{ d.id }}" title="Vorschau"></iframe>
+    {% elif vorschau_tabelle %}
+    <div class="textvorschau-huelle tabelle-huelle">
+      <table class="tabelle textvorschau-tabelle">
+        {% if vorschau_tabelle|length > 1 %}<thead><tr>{% for zelle in vorschau_tabelle[0] %}<th>{{ zelle }}</th>{% endfor %}</tr></thead>{% endif %}
+        <tbody>
+        {% for zeile in (vorschau_tabelle[1:] if vorschau_tabelle|length > 1 else vorschau_tabelle) %}
+          <tr>{% for zelle in zeile %}<td>{{ zelle }}</td>{% endfor %}</tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% if vorschau_gekuerzt %}<p class="hinweis">Gekürzt – die ganze Datei gibt es über <a href="/datei/{{ d.id }}?herunterladen=1">Herunterladen</a>.</p>{% endif %}
+    {% elif vorschau_text %}
+    <pre class="textvorschau">{{ vorschau_text }}</pre>
+    {% if vorschau_gekuerzt %}<p class="hinweis">Gekürzt – die ganze Datei gibt es über <a href="/datei/{{ d.id }}?herunterladen=1">Herunterladen</a>.</p>{% endif %}
+    {% else %}
+    <div class="karte leer">In dieser Datei wurde kein Text gefunden. <a href="/datei/{{ d.id }}?herunterladen=1">Herunterladen</a></div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

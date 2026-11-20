@@ -1,0 +1,13 @@
+{% extends "basis.html" %}
+{% block titel %}Anmelden – FAH-Ablage{% endblock %}
+{% block inhalt %}
+<section class="karte schmal">
+  <h1>Anmelden</h1>
+  {% if fehler %}<div class="meldung fehler">{{ fehler }}</div>{% endif %}
+  <form method="post" action="/anmelden" class="formular">
+    <label>Benutzername <input name="benutzer" value="{{ benutzer or '' }}" autocomplete="username" required></label>
+    <label>Passwort <input type="password" name="passwort" autocomplete="current-password" required></label>
+    <button type="submit">Anmelden</button>
+  </form>
+</section>
+{% endblock %}

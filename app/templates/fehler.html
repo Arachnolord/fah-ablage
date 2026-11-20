@@ -1,0 +1,8 @@
+{% extends "basis.html" %}
+{% block inhalt %}
+<section class="karte schmal">
+  <h1>Hoppla</h1>
+  <p>{{ meldung }}</p>
+  <p><a class="knopf" href="{{ zurueck or '/' }}">{{ 'Zurück' if zurueck else 'Zur Übersicht' }}</a></p>
+</section>
+{% endblock %}

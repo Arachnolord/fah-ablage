@@ -1,0 +1,24 @@
+{% extends "basis.html" %}
+{% from "_makros.html" import datum_de %}
+{% block titel %}Absender – FAH-Ablage{% endblock %}
+{% block mainklasse %}breit{% endblock %}
+{% block inhalt %}
+<div class="seitenkopf"><h1>Absender</h1></div>
+{% if liste %}
+<div class="tabelle-huelle karte ohne-innen">
+<table class="tabelle doktabelle">
+  <thead><tr><th>Absender</th><th>Meist unter</th><th class="zahl">Dokumente</th><th class="sp-eingang">Letzter Brief</th></tr></thead>
+  <tbody>
+  {% for e in liste %}
+  <tr>
+    <td><a href="/dokumente?absender={{ e.absender|urlencode }}">{{ e.absender }}</a></td>
+    <td><a class="chip" href="/dokumente?art={{ e.art|urlencode }}">{{ e.art }}</a></td>
+    <td class="zahl">{{ e.anzahl }}</td>
+    <td class="sp-eingang">{{ datum_de(e.zuletzt) }}</td>
+  </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% else %}<p class="leer">Noch keine Dokumente abgelegt.</p>{% endif %}
+{% endblock %}

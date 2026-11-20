@@ -1,0 +1,37 @@
+{% extends "basis.html" %}
+{% block titel %}Warteschlange – FAH-Ablage{% endblock %}
+{% block inhalt %}
+<section class="karte">
+  <h1>Warteschlange</h1>
+  <p>{% if gesamt %}{{ gesamt }} {{ 'Datei wartet' if gesamt == 1 else 'Dateien warten' }} aufs Einlesen{% if gesamt > auftraege|length %}, die nächsten {{ auftraege|length }} stehen unten{% endif %}.{% else %}Nichts zu tun – alles abgelegt.{% endif %}
+  {% if lauf.aktuell and lauf.aktuell.quelle == 'blick' %}Gerade: zweiter Blick auf ein unsicheres Dokument.{% elif lauf.ki_pause %}Die KI startet gerade – es geht gleich weiter.{% endif %}</p>
+  <p class="hinweis">ⓘ Reihenfolge wie unten: Eingang und Uploads kommen immer vor dem Import, damit Neues nicht stundenlang wartet. Etwa eine Minute pro Dokument.</p>
+  {% for i in importe %}
+  <form method="post" action="/warteschlange/import-abbrechen" class="zeile-knopf"
+        data-bestaetigen="Die {{ i.n }} noch wartenden Dateien aus „{{ i.anzeige }}“ aus der Warteschlange nehmen? Schon Abgelegtes bleibt, die Originale auch.">
+    <input type="hidden" name="ordner" value="{{ i.ordner }}">
+    <span>Import aus <code>{{ i.anzeige }}</code>: {{ i.n }} offen</span>
+    <button class="gefahr" type="submit">Import abbrechen</button>
+  </form>
+  {% endfor %}
+  {% if importe %}<p class="hinweis">ⓘ „Import abbrechen“ nimmt nur die noch wartenden Dateien heraus. Was schon abgelegt ist, bleibt; mit „Import starten“ geht es später dort weiter, wo es aufgehört hat.</p>{% endif %}
+</section>
+{% if auftraege %}
+<section class="karte">
+  <div class="tabelle-huelle"><table class="tabelle">
+    <thead><tr><th>#</th><th>Datei</th><th>Woher</th><th>Eingereiht</th><th>Stand</th></tr></thead>
+    <tbody>
+    {% for a in auftraege %}
+    <tr>
+      <td class="zahl">{{ loop.index }}</td>
+      <td class="umbruch">{{ a.name }}</td>
+      <td class="umbruch"><span class="chip">{{ quellen_namen.get(a.quelle, a.quelle) }}</span> <code>{{ a.wo }}</code></td>
+      <td>{{ a.eingereiht_ts|int|zeit_de }}</td>
+      <td>{% if a.id == aktuell_id %}<strong>wird gerade gelesen</strong>{% elif a.spaeter %}neuer Versuch später ({{ a.versuche }}. Versuch war nichts){% elif a.versuche %}{{ a.versuche }}. Versuch läuft gleich{% else %}wartet{% endif %}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+</section>
+{% endif %}
+{% endblock %}

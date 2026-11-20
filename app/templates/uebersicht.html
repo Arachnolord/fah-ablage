@@ -1,0 +1,67 @@
+{% extends "basis.html" %}
+{% from "_makros.html" import kacheln %}
+{% block inhalt %}
+<section class="karte hochladen" id="hochladen">
+  <h1>Dokumente ablegen</h1>
+  <label class="ablagezone" id="ablagezone">
+    <input type="file" id="dateiwahl" multiple accept=".pdf,image/*,.heic,.docx,.xlsx,.txt,.csv">
+    <span class="ablagezone-text"><strong>Dateien hierher ziehen</strong> oder tippen zum Auswählen</span>
+    <span class="hinweis">PDF, Fotos/Scans vom Handy, Word, Excel. Die App liest jedes Dokument und legt es selbst ab.</span>
+  </label>
+  <p class="upload-status" id="uploadstatus" aria-live="polite"></p>
+  <p class="hinweis">ⓘ Du kannst Dateien auch direkt in den Freigabeordner <code>{{ pfade.eingang }}</code> legen – sie werden genauso abgelegt.</p>
+</section>
+
+<section class="kacheln" id="kacheln">
+  <a class="kachel" href="/warteschlange">
+    <span class="kachel-zahl" data-feld="warteschlange">{{ lauf.warteschlange }}</span>
+    <span class="kachel-name">in Arbeit</span>
+    <span class="kachel-info" data-feld="aktuell">{% if lauf.ki_pause %}KI startet gerade – wartet …{% elif lauf.aktuell and lauf.aktuell.quelle == 'blick' %}schaut ein unsicheres Dokument genauer an …{% elif lauf.aktuell %}liest gerade ein Dokument …{% elif lauf.warteschlange %}wartet …{% else %}nichts zu tun{% endif %}</span>
+  </a>
+  <a class="kachel" href="/dokumente">
+    <span class="kachel-zahl" data-feld="abgelegt">{{ zahlen.abgelegt }}</span>
+    <span class="kachel-name">abgelegt</span>
+    <span class="kachel-info">alle ansehen</span>
+  </a>
+  <a class="kachel" href="/doppelte">
+    <span class="kachel-zahl" data-feld="dubletten">{{ zahlen.dubletten }}</span>
+    <span class="kachel-name">doppelt</span>
+    <span class="kachel-info">byte-gleich, nicht erneut abgelegt</span>
+  </a>
+  <a class="kachel{% if zahlen.unsicher %} kachel-achtung{% endif %}" href="/dokumente?unsicher=1">
+    <span class="kachel-zahl" data-feld="unsicher">{{ zahlen.unsicher }}</span>
+    <span class="kachel-name">unsicher</span>
+    <span class="kachel-info">abgelegt, kurz drüberschauen</span>
+  </a>
+  {% if lauf.blick_geklaert or lauf.blick_offen %}
+  <a class="kachel" href="/dokumente?blick=1" title="Unsichere Dokumente, die der zweite Blick selbst zuordnen konnte">
+    <span class="kachel-zahl" data-feld="blick_geklaert">{{ lauf.blick_geklaert }}</span>
+    <span class="kachel-name">zweiter Blick</span>
+    <span class="kachel-info"><span data-feld="blick_offen">{{ lauf.blick_offen }}</span> warten noch · geklärte ansehen</span>
+  </a>
+  {% endif %}
+  {% if lauf.import_gesamt %}
+  <a class="kachel" href="/bericht">
+    <span class="kachel-zahl"><span data-feld="import_fertig">{{ lauf.import_fertig }}</span>/{{ lauf.import_gesamt }}</span>
+    <span class="kachel-name">Import</span>
+    <span class="kachel-info">Bericht ansehen</span>
+  </a>
+  {% endif %}
+</section>
+
+<section class="karte">
+  <h2>Schnell finden</h2>
+  <form class="suchzeile" action="/dokumente" method="get">
+    <input type="search" name="q" placeholder="Suchbegriff, z. B. Beitragsbescheid" aria-label="Suchbegriff">
+    <button type="submit">Suchen</button>
+  </form>
+  <div class="chips">
+    {% for a in arten %}<a class="chip" href="/dokumente?art={{ a|urlencode }}">{{ a }}</a>{% endfor %}
+  </div>
+</section>
+
+<section>
+  <div class="seitenkopf"><h2>Zuletzt hinzugefügt</h2><a class="nurtext" href="/dokumente?sortierung=eingang&amp;richtung=ab">alle anzeigen</a></div>
+  {% if zuletzt %}{{ kacheln(zuletzt) }}{% else %}<p class="leer karte">Noch nichts abgelegt.</p>{% endif %}
+</section>
+{% endblock %}

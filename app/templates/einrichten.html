@@ -1,0 +1,15 @@
+{% extends "basis.html" %}
+{% block titel %}Einrichten – FAH-Ablage{% endblock %}
+{% block inhalt %}
+<section class="karte schmal">
+  <h1>Willkommen</h1>
+  <p>Lege einmal deinen Zugang an. Danach ist die Ablage nur mit Anmeldung erreichbar.</p>
+  {% if fehler %}<div class="meldung fehler">{{ fehler }}</div>{% endif %}
+  <form method="post" action="/einrichten" class="formular">
+    <label>Benutzername <input name="benutzer" value="{{ benutzer or '' }}" autocomplete="username" required></label>
+    <label>Passwort <input type="password" name="passwort" minlength="8" autocomplete="new-password" required></label>
+    <p class="hinweis">ⓘ Mindestens 8 Zeichen. Gespeichert wird nur ein Hash, nie das Passwort selbst.</p>
+    <button type="submit">Zugang anlegen</button>
+  </form>
+</section>
+{% endblock %}

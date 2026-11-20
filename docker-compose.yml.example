@@ -1,0 +1,54 @@
+# ============================================================================
+# Erdacht und programmiert von Fabian Hammer.
+# (c) 2026 Fabian Hammer - Alle Rechte vorbehalten. Geistiges Eigentum.
+# ============================================================================
+# FAH-Ablage. Werte kommen aus .env (wird von manage.sh beim ersten Mal angelegt).
+# Diese Datei wird bei jedem Update neu geschrieben – eigene Anpassungen in docker-compose.override.yml.
+# Kamera-KI hat auf dem NAS Vorrang: beide Dienste cpu_shares 256, KI hart auf 2 Kerne.
+name: fah-ablage
+services:
+  fah-ablage:
+    build: .
+    image: fah-ablage:latest
+    container_name: fah-ablage
+    restart: unless-stopped
+    user: "${PUID}:${PGID}"
+    ports:
+      - "${ABLAGE_PORT}:8080"
+    environment:
+      TZ: Europe/Berlin
+      KI_URL: http://fah-ablage-ki:8080
+      EINGANG_ANZEIGE: ${EINGANG_DIR}
+      ARCHIV_ANZEIGE: ${ARCHIV_DIR}
+      IMPORT_ANZEIGE: ${IMPORT_DIR}
+      QUELLEN_ANZEIGE: ${QUELLEN_DIR}
+    volumes:
+      - ./config:/config
+      - ${EINGANG_DIR}:/eingang
+      - ${ARCHIV_DIR}:/archiv
+      - ${QUELLEN_DIR}:/quellen:ro
+    cpu_shares: 256
+    cpus: 2.0
+    mem_limit: 2g
+    init: true
+    stop_grace_period: 60s
+    depends_on:
+      - fah-ablage-ki
+
+  fah-ablage-ki:
+    image: ghcr.io/ggml-org/llama.cpp:server
+    container_name: fah-ablage-ki
+    restart: unless-stopped
+    command: ["-m", "/models/qwen3-4b.gguf", "--ctx-size", "6144", "--threads", "2",
+              "--parallel", "1", "--n-gpu-layers", "0", "--host", "0.0.0.0", "--port", "8080"]
+    volumes:
+      - ./modelle:/models:ro
+    cpu_shares: 256
+    cpus: 2.0
+    mem_limit: 6g
+
+networks:
+  default:
+    ipam:
+      config:
+        - subnet: 172.16.41.0/24

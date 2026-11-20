@@ -1,0 +1,59 @@
+{# Erdacht und programmiert von Fabian Hammer. (c) 2026 Fabian Hammer - Alle Rechte vorbehalten. #}
+{% macro datum_de(iso) -%}
+{%- set t = iso.split('-') -%}{{ t[2] }}.{{ t[1] }}.{{ t[0] }}
+{%- endmacro %}
+
+{% macro eingang_de(ts) -%}
+{{ ts|int|zeit_de }}
+{%- endmacro %}
+
+{% macro doklink(d, pruefen) -%}
+/dokument/{{ d.id }}{% if pruefen %}?pruefen=1{% endif %}
+{%- endmacro %}
+
+{% macro kacheln(liste, pruefen=False, waehlbar=False) %}
+<ul class="dokkacheln">
+  {% for d in liste %}
+  <li class="dokkachel">
+    {% if waehlbar %}<label class="dokkachel-wahl"><input type="checkbox" name="ids" value="{{ d.id }}" form="sammel" aria-label="{{ d.titel }} auswählen"></label>{% endif %}
+    <a class="dokkachel-bild" href="{{ doklink(d, pruefen) }}" tabindex="-1" aria-hidden="true">
+      <img src="/vorschau/{{ d.id }}?v={{ version }}" alt="" loading="lazy">
+      <span class="dokkachel-endung">{{ d.rel_pfad.rsplit('.', 1)[-1]|upper }}</span>
+    </a>
+    <div class="dokkachel-text">
+      <a class="dokkachel-titel" href="{{ doklink(d, pruefen) }}">{{ d.titel }}</a>
+      <span class="dok-meta">{{ d.absender }}</span>
+      <span class="dok-meta"><span class="chip">{{ d.art }}</span> {{ datum_de(d.datum) }}
+        {% if d.unsicher %}<span class="marke-unsicher" title="{{ d.grund }}">unsicher</span>{% endif %}</span>
+    </div>
+  </li>
+  {% endfor %}
+</ul>
+{% endmacro %}
+
+{% macro tabelle(liste, sortierung, absteigend, sort_link, pruefen=False, waehlbar=False) %}
+<div class="tabelle-huelle">
+<table class="tabelle doktabelle">
+  <thead><tr>
+    {% if waehlbar %}<th class="sp-wahl"><span class="nur-leser">Auswahl</span></th>{% endif %}
+    {% for schluessel, name in [("datum", "Datum"), ("titel", "Titel"), ("absender", "Absender"), ("art", "Art"), ("eingang", "Hinzugefügt")] %}
+    <th class="sp-{{ schluessel }}"><a href="{{ sort_link(schluessel) }}"{% if sortierung == schluessel %} aria-sort="{{ 'descending' if absteigend else 'ascending' }}"{% endif %}>{{ name }}{% if sortierung == schluessel %} {{ '▼' if absteigend else '▲' }}{% endif %}</a></th>
+    {% endfor %}
+    <th class="sp-aktion"><span class="nur-leser">Öffnen</span></th>
+  </tr></thead>
+  <tbody>
+  {% for d in liste %}
+  <tr>
+    {% if waehlbar %}<td class="sp-wahl"><input type="checkbox" name="ids" value="{{ d.id }}" form="sammel" aria-label="{{ d.titel }} auswählen"></td>{% endif %}
+    <td class="sp-datum">{{ datum_de(d.datum) }}</td>
+    <td class="sp-titel"><a href="{{ doklink(d, pruefen) }}">{{ d.titel }}</a>{% if d.unsicher %} <span class="marke-unsicher" title="{{ d.grund }}">unsicher</span>{% endif %}</td>
+    <td class="sp-absender"><a class="leise" href="/dokumente?absender={{ d.absender|urlencode }}">{{ d.absender }}</a></td>
+    <td class="sp-art"><a class="chip" href="/dokumente?art={{ d.art|urlencode }}">{{ d.art }}</a></td>
+    <td class="sp-eingang">{{ eingang_de(d.eingang_ts) }}</td>
+    <td class="sp-aktion"><a href="/datei/{{ d.id }}" target="_blank" rel="noopener" title="Datei öffnen">↗</a></td>
+  </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% endmacro %}

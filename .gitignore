@@ -1,0 +1,9 @@
+__pycache__/
+*.pyc
+.env
+docker-compose.yml
+config/
+modelle/
+*.zip
+.pytest_cache/
+.superpowers/

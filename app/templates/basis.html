@@ -1,0 +1,43 @@
+<!doctype html>
+<!-- Erdacht und programmiert von Fabian Hammer. (c) 2026 Fabian Hammer - Alle Rechte vorbehalten. -->
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>{% block titel %}FAH-Ablage{% endblock %}</title>
+<link rel="icon" href="/static/icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/static/app.css?v={{ version }}">
+</head>
+<body>
+{% set pfad = request.url.path %}
+<div class="rahmen{% if not angemeldet %} ohne-leiste{% endif %}">
+{% if angemeldet %}
+<aside class="leiste">
+  <a class="marke" href="/"><img src="/static/icon.svg" alt="" width="28" height="28"><span>FAH-Ablage</span></a>
+  <nav class="leiste-nav" aria-label="Hauptmenü">
+    <a href="/" {% if pfad == '/' %}aria-current="page"{% endif %}><span class="ico">◧</span>Übersicht</a>
+    <a href="/dokumente" {% if pfad in ('/dokumente', '/suche') and not request.query_params.get('unsicher') and not request.query_params.get('papierkorb') %}aria-current="page"{% endif %}><span class="ico">☰</span>Dokumente</a>
+    <a href="/absender" {% if pfad == '/absender' %}aria-current="page"{% endif %}><span class="ico">✉</span>Absender</a>
+    <a href="/arten" {% if pfad == '/arten' %}aria-current="page"{% endif %}><span class="ico">▤</span>Arten</a>
+    <a href="/dokumente?unsicher=1" {% if request.query_params.get('unsicher') %}aria-current="page"{% endif %}><span class="ico">⚑</span>Unsicher</a>
+    <a href="/dokumente?papierkorb=1" {% if request.query_params.get('papierkorb') %}aria-current="page"{% endif %}><span class="ico">⌫</span>Papierkorb</a>
+    <span class="leiste-trenner"></span>
+    <a href="/warteschlange" {% if pfad == '/warteschlange' %}aria-current="page"{% endif %}><span class="ico">⧗</span>Warteschlange</a>
+    <a href="/doppelte" {% if pfad == '/doppelte' %}aria-current="page"{% endif %}><span class="ico">⧉</span>Doppelte</a>
+    <a href="/bericht" {% if pfad == '/bericht' %}aria-current="page"{% endif %}><span class="ico">◔</span>Bericht</a>
+    <a href="/einstellungen" {% if pfad == '/einstellungen' %}aria-current="page"{% endif %}><span class="ico">⚙</span>Einstellungen</a>
+    <form method="post" action="/abmelden"><button class="leiste-knopf" type="submit"><span class="ico">⎋</span>Abmelden</button></form>
+  </nav>
+</aside>
+{% else %}
+<header class="kopf"><span class="marke"><img src="/static/icon.svg" alt="" width="26" height="26"><span>FAH-Ablage</span></span></header>
+{% endif %}
+<main class="{% block mainklasse %}{% endblock %}">
+{% block inhalt %}{% endblock %}
+<footer>FAH-Ablage {{ version }} · alles bleibt auf deinem NAS</footer>
+</main>
+</div>
+<script src="/static/app.js?v={{ version }}"></script>
+</body>
+</html>

@@ -1,0 +1,55 @@
+{% extends "basis.html" %}
+{% block titel %}Arten – FAH-Ablage{% endblock %}
+{% block inhalt %}
+<div class="seitenkopf"><h1>Arten</h1></div>
+
+<section class="karte">
+  <h2>Neue Art anlegen</h2>
+  <form method="post" action="/arten/neu" class="art-neu">
+    <input name="name" maxlength="40" placeholder="Name, z. B. Haustiere" aria-label="Name der neuen Art" required>
+    <input name="hinweis" maxlength="200" placeholder="Was gehört hinein? z. B. Tierarzt, Hundesteuer, Futter" aria-label="Was gehört hinein?">
+    <button type="submit">Anlegen</button>
+  </form>
+  <p class="hinweis">ⓘ Jede Art ist ein Hauptordner im Archiv. Die Beschreibung bekommt die KI – je genauer, desto sicherer legt sie passende Briefe dort ab. Gilt für neue Dokumente; bereits abgelegte korrigierst du einzeln.</p>
+</section>
+
+<ul class="artenliste karte ohne-innen">
+  {% for a, n in liste %}
+  {% set eigen = eigene.get(a, '') %}
+  <li class="art-eintrag">
+    <div class="art-zeile">
+      <a href="/dokumente?art={{ a|urlencode }}"><strong>{{ a }}</strong></a>
+      <span class="zaehler">{{ n }} Dokument{{ '' if n == 1 else 'e' }}</span>
+    </div>
+    <p class="hinweis art-beschreibung">{{ eigen or eingebaut.get(a, 'Keine Beschreibung – die KI richtet sich nur nach dem Namen.') }}</p>
+    <details class="art-bearbeiten">
+      <summary>Bearbeiten</summary>
+      <form method="post" action="/arten/umbenennen" class="formular">
+        <input type="hidden" name="alt" value="{{ a }}">
+        <label>Name <input name="neu" value="{{ a }}" maxlength="40" {% if a == 'Sonstiges' %}readonly{% endif %} required></label>
+        <label>Was gehört hinein?
+          <input name="hinweis" value="{{ eigen }}" maxlength="200" placeholder="{{ eingebaut.get(a, '') }}">
+        </label>
+        <p class="hinweis">ⓘ Leer lassen = eingebaute Beschreibung (grau). Beim Umbenennen wandert der Ordner im Archiv samt allen Dokumenten mit.</p>
+        <button type="submit">Speichern</button>
+      </form>
+      {% if a != 'Sonstiges' %}
+      <form method="post" action="/arten/loeschen" data-bestaetigen="Art „{{ a }}“ löschen?">
+        <input type="hidden" name="name" value="{{ a }}">
+        <button class="gefahr" type="submit" {% if n %}disabled title="Enthält noch Dokumente"{% endif %}>Löschen</button>
+        {% if n %}<span class="hinweis">Nur leere Arten lassen sich löschen.</span>{% endif %}
+      </form>
+      {% endif %}
+    </details>
+  </li>
+  {% endfor %}
+</ul>
+
+{% if fremde %}
+<section class="karte">
+  <h2>Nicht mehr in der Liste</h2>
+  <p class="hinweis">ⓘ Diese Arten haben noch Dokumente, stehen aber nicht mehr in der Liste. Lege sie neu an oder sortiere die Dokumente um.</p>
+  <ul class="regeln">{% for a, n in fremde %}<li><a href="/dokumente?art={{ a|urlencode }}">{{ a }}</a> · {{ n }}</li>{% endfor %}</ul>
+</section>
+{% endif %}
+{% endblock %}

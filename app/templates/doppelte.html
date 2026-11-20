@@ -1,0 +1,42 @@
+{% extends "basis.html" %}
+{% block titel %}Doppelte – FAH-Ablage{% endblock %}
+{% block inhalt %}
+<section class="karte">
+  <h1>Doppelte Dateien</h1>
+  <p>{{ gezaehlt }} {{ 'Datei war' if gezaehlt == 1 else 'Dateien waren' }} Byte für Byte gleich mit schon Abgelegtem und {{ 'wurde' if gezaehlt == 1 else 'wurden' }} nicht noch einmal abgelegt.</p>
+  <p class="hinweis">ⓘ „Doppelt“ heißt hier: exakt derselbe Inhalt, erkannt am digitalen Fingerabdruck (SHA-256) des Inhalts. Der Dateiname spielt keine Rolle: Gleiche Namen mit anderem Inhalt sind nicht doppelt, verschiedene Namen mit gleichem Inhalt schon. Zwei Lohnzettel derselben Firma mit anderem Monat oder Betrag sind verschiedene Dateien und werden ganz normal abgelegt. Darum braucht es hier keinen zweiten Blick.</p>
+  <p class="hinweis">ⓘ Aus dem Eingang wird die doppelte Datei aufbewahrt (Herunterladen/Löschen). Beim Import bleibt das Original ohnehin in seinem Ordner – „Aus Liste entfernen“ löscht dort nichts.</p>
+</section>
+{% if gruppen %}
+{% for g in gruppen %}
+<section class="karte" id="dok-{{ g.dok_id }}">
+  <h2 class="gruppe-kopf">
+    {% if g.titel %}<a href="/dokument/{{ g.dok_id }}">{{ g.titel }}</a> <span class="hinweis">{{ g.datum }} · {{ g.absender }} · {{ g.art }}{% if g.status == 'papierkorb' %} · im Papierkorb{% endif %}</span>
+    {% else %}Abgelegtes Dokument inzwischen gelöscht{% endif %}
+  </h2>
+  {% if g.quelle_datei %}<p class="hinweis">Abgelegt wurde: <code>{{ g.quelle_datei }}</code></p>
+  {% elif g.dateien|selectattr('nachgetragen')|list and g.dok_quelle == 'import' %}<p class="hinweis">Nachgetragen aus der Zeit vor 1.8: Eine dieser Dateien ist die abgelegte, die übrigen wurden übersprungen.</p>{% endif %}
+  <div class="tabelle-huelle"><table class="tabelle">
+    <thead><tr><th>Byte-gleiche Datei</th><th>Woher</th><th>Erkannt</th><th></th></tr></thead>
+    <tbody>
+    {% for f in g.dateien %}
+    <tr>
+      <td class="umbruch">{{ f.name }}</td>
+      <td class="umbruch"><span class="chip">{{ quellen_namen.get(f.quelle, f.quelle) }}</span> <code>{{ f.pfad }}</code></td>
+      <td>{{ f.ts|int|zeit_de }}</td>
+      <td class="aktionen">
+        {% if f.kopie %}<a class="knopf zweit" href="/doppelte/{{ f.id }}/datei">Herunterladen</a>{% endif %}
+        <form method="post" action="/doppelte/{{ f.id }}/loeschen" data-bestaetigen="{{ 'Die aufbewahrte doppelte Datei löschen?' if f.kopie else 'Nur aus dieser Liste entfernen? Die Datei im Import-Ordner bleibt.' }}">
+          <button class="{{ 'gefahr' if f.kopie else 'knopf zweit' }}" type="submit">{{ 'Löschen' if f.kopie else 'Aus Liste entfernen' }}</button>
+        </form>
+      </td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+</section>
+{% endfor %}
+{% else %}
+<section class="karte"><p class="leer">Keine doppelten Dateien in der Liste.</p></section>
+{% endif %}
+{% endblock %}
