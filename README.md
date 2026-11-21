@@ -1,6 +1,6 @@
 # FAH-Ablage
 
-Dokumentenablage mit **lokaler KI** für das UGREEN-NAS. Dokumente einzeln in den Eingang legen
+Dokumentenablage mit **lokaler KI** für das NAS oder MiniPC mit Docker. Dokumente einzeln in den Eingang legen
 (Freigabeordner oder Upload in der Weboberfläche, auch vom Handy) – die App liest sie, erkennt Art,
 Absender, Briefdatum und Titel und legt sie selbst ab:
 
